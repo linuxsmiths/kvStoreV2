@@ -38,8 +38,13 @@ set_target_properties(KVPlayground PROPERTIES
     CXX_EXTENSIONS NO
 )
 
+find_package(Python3 REQUIRED)
+
 # Copy chunk.bin and conversation_tokens.json to output directory after build
 add_custom_command(TARGET KVPlayground POST_BUILD
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/precompute_tokens.py
+            ${CMAKE_CURRENT_LIST_DIR}/conversation_template.txt
+            ${CMAKE_CURRENT_LIST_DIR}/conversation_tokens.json
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${CMAKE_CURRENT_SOURCE_DIR}/chunk.bin
         $<TARGET_FILE_DIR:KVPlayground>/chunk.bin

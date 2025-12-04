@@ -267,7 +267,7 @@ Managed via vcpkg.json:
 ## Related Documentation
 
 - [ARCHITECTURE.md](../docs/ARCHITECTURE.md) - System architecture and deployment
-- [QUICKSTART.md](../docs/QUICKSTART.md) - Detailed setup guide
+- [QUICKSTART.md](QUICKSTART.md) - Detailed setup guide
 - [KVClient README](../KVClient/README.md) - Linux client library
 
 ## License

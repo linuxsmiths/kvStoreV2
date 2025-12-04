@@ -3,7 +3,11 @@ cmake_minimum_required(VERSION 3.15)
 # Option to use local Azure SDK build (for multi-NIC support)
 # NOTE: Local SDK must be built first with custom multi-NIC features
 # Set to ON to use local Azure SDK with multi-NIC support
-option(USE_LOCAL_AZURE_SDK "Use local Azure SDK build instead of vcpkg" ON)
+if(WIN32)
+	option(USE_LOCAL_AZURE_SDK "Use local Azure SDK build instead of vcpkg" ON)
+else()
+	option(USE_LOCAL_AZURE_SDK "Use local Azure SDK build instead of vcpkg" OFF)
+endif()
 
 # Configure local Azure SDK if enabled (BEFORE vcpkg toolchain)
 if(USE_LOCAL_AZURE_SDK)
@@ -147,11 +151,16 @@ else()
         Azure::azure-storage-blobs
         Azure::azure-identity
         Azure::azure-core
-        # Windows system libraries
-        winhttp
-        bcrypt
-        crypt32
     )
+
+    if(WIN32)
+        target_link_libraries(AzureStorageKVStoreLibV2 PUBLIC
+            # Windows system libraries
+            winhttp
+            bcrypt
+            crypt32
+    )
+    endif()
 endif()
 
 # KVStoreService library
