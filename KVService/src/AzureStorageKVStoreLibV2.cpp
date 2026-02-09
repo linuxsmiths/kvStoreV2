@@ -661,8 +661,8 @@ std::future<std::pair<bool, PromptChunk>> AzureStorageKVStoreLibV2::ReadAsync(co
             chunk.partitionKey = partitionKey;
             chunk.parentHash = parentHash;
             chunk.hash = hash;
-            chunk.buffer = buffer;
             chunk.bufferSize = buffer.size();
+            chunk.buffer = std::move(buffer);
             
             auto endTime = std::chrono::high_resolution_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();

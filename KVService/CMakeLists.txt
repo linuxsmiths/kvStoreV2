@@ -3,7 +3,57 @@ cmake_minimum_required(VERSION 3.15)
 # Option to use local Azure SDK build (for multi-NIC support)
 # NOTE: Local SDK must be built first with custom multi-NIC features
 # Set to ON to use local Azure SDK with multi-NIC support
-option(USE_LOCAL_AZURE_SDK "Use local Azure SDK build instead of vcpkg" ON)
+if(WIN32)
+	option(USE_LOCAL_AZURE_SDK "Use local Azure SDK build instead of vcpkg" ON)
+else()
+	option(USE_LOCAL_AZURE_SDK "Use local Azure SDK build instead of vcpkg" OFF)
+	# These are currently only tested for Linux builds.
+	# Set only one of tcmalloc or jemalloc.
+	option(USE_TCMALLOC "Use tcmalloc for malloc/free/new/delete" ON)
+	option(USE_JEMALLOC "Use jemalloc for malloc/free/new/delete" OFF)
+endif()
+
+if(USE_JEMALLOC)
+    find_package(PkgConfig REQUIRED)
+    pkg_search_module(JEMALLOC QUIET jemalloc)
+
+    if(NOT JEMALLOC_FOUND)
+        message(STATUS "jemalloc not found, trying to install libjemalloc-dev!")
+        execute_process(COMMAND sudo apt install -y libjemalloc-dev
+                RESULT_VARIABLE JEMALLOC_INSTALL_RESULT)
+        if(NOT JEMALLOC_INSTALL_RESULT EQUAL "0")
+            message(FATAL_ERROR "apt install libjemalloc-dev failed with ${JEMALLOC_INSTALL_RESULT}, try installing libjemalloc-dev manually and then run cmake again")
+        else()
+            # Call once more to ensure above install completed fine and also
+            # will set JEMALLOC_LIBRARY_DIRS variable.
+            pkg_search_module(JEMALLOC REQUIRED jemalloc)
+        endif()
+    endif()
+
+    # We want to link against the static jemalloc lib.
+    message(STATUS "Using jemalloc static lib ${JEMALLOC_LIBRARY_DIRS}/libjemalloc.a")
+endif()
+
+if(USE_TCMALLOC)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(TCMALLOC QUIET libtcmalloc)
+
+    if(NOT TCMALLOC_FOUND)
+        message(STATUS "tcmalloc not found, trying to install libgoogle-perftools-dev!")
+        execute_process(COMMAND sudo apt install -y libgoogle-perftools-dev
+                RESULT_VARIABLE TCMALLOC_INSTALL_RESULT)
+        if(NOT TCMALLOC_INSTALL_RESULT EQUAL "0")
+            message(FATAL_ERROR "apt install libgoogle-perftools-dev failed with ${TCMALLOC_INSTALL_RESULT}, try installing libgoogle-perftools-dev manually and then run cmake again")
+        else()
+            # Call once more to ensure above install completed fine and also
+            # will set tcmalloc_INCLUDE_DIR and TCMALLOC_LIBRARIES variables.
+            pkg_check_modules(TCMALLOC REQUIRED libtcmalloc)
+        endif()
+    else()
+        message(STATUS "Using tcmalloc lib ${TCMALLOC_LIBRARIES}")
+        message(STATUS "Using tcmalloc include dir ${TCMALLOC_INCLUDE_DIRS}")
+    endif()
+endif()
 
 # Configure local Azure SDK if enabled (BEFORE vcpkg toolchain)
 if(USE_LOCAL_AZURE_SDK)
@@ -147,11 +197,26 @@ else()
         Azure::azure-storage-blobs
         Azure::azure-identity
         Azure::azure-core
-        # Windows system libraries
-        winhttp
-        bcrypt
-        crypt32
     )
+
+    if(USE_JEMALLOC)
+        target_link_libraries(AzureStorageKVStoreLibV2 PUBLIC
+                          ${JEMALLOC_LIBRARY_DIRS}/libjemalloc.a)
+    endif()
+
+    if(USE_TCMALLOC)
+        target_link_libraries(AzureStorageKVStoreLibV2 PUBLIC
+                          ${TCMALLOC_LIBRARIES})
+    endif()
+
+    if(WIN32)
+        target_link_libraries(AzureStorageKVStoreLibV2 PUBLIC
+            # Windows system libraries
+            winhttp
+            bcrypt
+            crypt32
+    )
+    endif()
 endif()
 
 # KVStoreService library
@@ -182,6 +247,16 @@ target_link_libraries(KVStoreServiceLib PUBLIC
     protobuf::libprotobuf
 )
 
+if(USE_JEMALLOC)
+target_link_libraries(KVStoreServiceLib PUBLIC
+                      ${JEMALLOC_LIBRARY_DIRS}/libjemalloc.a)
+endif()
+
+if(USE_TCMALLOC)
+target_link_libraries(KVStoreServiceLib PUBLIC
+                      ${TCMALLOC_LIBRARIES})
+endif()
+
 # Force static runtime to match vcpkg libraries
 target_compile_options(KVStoreServiceLib PRIVATE
     $<$<CONFIG:Release>:/MT>
@@ -197,6 +272,15 @@ target_link_libraries(KVStoreServer PRIVATE
     KVStoreServiceLib
 )
 
+if(USE_JEMALLOC)
+	target_link_libraries(KVStoreServer PRIVATE
+                      ${JEMALLOC_LIBRARY_DIRS}/libjemalloc.a)
+endif()
+
+if(USE_TCMALLOC)
+	target_link_libraries(KVStoreServer PRIVATE
+                      ${TCMALLOC_LIBRARIES})
+endif()
 # Force static runtime to match vcpkg libraries
 target_compile_options(KVStoreServer PRIVATE
     $<$<CONFIG:Release>:/MT>

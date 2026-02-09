@@ -141,7 +141,7 @@ export KVSTORE_GRPC_SERVER="your-windows-server:8085"
 ```bash
 sudo apt-get update
 sudo apt-get install -y build-essential cmake git pkg-config \
-    libssl-dev autoconf libtool curl unzip
+    libssl-dev autoconf libtool curl zip unzip python3-tiktoken
 ```
 
 2. **Install vcpkg**:
@@ -152,15 +152,15 @@ cd vcpkg
 ./vcpkg integrate install
 ```
 
-3. **Install gRPC and Protobuf**:
+3. **Install gRPC, Protobuf, Azure SDK and other important packages**:
 ```bash
-./vcpkg install grpc protobuf nlohmann-json
+./vcpkg install grpc protobuf nlohmann-json zlib azure-storage-blobs-cpp azure-identity-cpp
 ```
 
 ### Build Steps
 
 ```bash
-cd KVStoreV2
+cd kvStoreV2
 mkdir build && cd build
 cmake .. -DCMAKE_TOOLCHAIN_FILE=/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake
 make -j$(nproc)

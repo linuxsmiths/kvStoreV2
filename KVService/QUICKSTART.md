@@ -42,7 +42,7 @@ cmake --build build --config Release
 
 ```bash
 # Navigate to your kvStore directory
-cd ~/kvStore
+cd ~/kvStoreV2
 
 # Configure CMake
 cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake
